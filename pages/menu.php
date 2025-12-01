@@ -3,6 +3,15 @@ $page_title = "Menu";
 require_once '../includes/db.php';
 require_once '../includes/header.php';
 
+// Check if admin is logged in
+$is_admin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
+
+// Get success/error messages from session (for delete operations)
+$success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
+$error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
+unset($_SESSION['success_message']);
+unset($_SESSION['error_message']);
+
 // Get all categories
 try {
     $cat_stmt = $pdo->query("SELECT DISTINCT category FROM menu_items WHERE is_available = 1 ORDER BY category");
@@ -44,11 +53,22 @@ try {
             <i class="bi bi-journal-text me-3"></i>Our Menu
         </h1>
         <p class="lead">Discover our handcrafted selections</p>
+        
+        <?php if ($is_admin): ?>
+        <div class="mt-3">
+            <a href="../admin/dashboard.php" class="btn btn-light me-2">
+                <i class="bi bi-speedometer2 me-1"></i> Dashboard
+            </a>
+            <a href="../admin/add_item.php" class="btn btn-warning">
+                <i class="bi bi-plus-circle me-1"></i> Add New Item
+            </a>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <!-- Filter & Search Section -->
-<section class="py-4 bg-light sticky-top" style="top: 56px; z-index: 999;">
+<section class="py-4 bg-light sticky-top" style="top: 56px; z-index: 10;">
     <div class="container">
         <form method="GET" class="row g-3 align-items-center">
             <div class="col-md-4">
@@ -74,6 +94,25 @@ try {
     </div>
 </section>
 
+<!-- Success/Error Messages -->
+<?php if ($success_message): ?>
+<div class="container mt-3">
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i><?php echo $success_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($error_message): ?>
+<div class="container mt-3">
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><?php echo $error_message; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- Menu Items Grid -->
 <section class="py-5" style="background-color: #FFF8DC;">
     <div class="container">
@@ -91,11 +130,29 @@ try {
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title fw-bold"><?php echo sanitize($item['name']); ?></h5>
                             <p class="card-text text-muted flex-grow-1"><?php echo sanitize($item['description']); ?></p>
-                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                <span class="fs-4 fw-bold" style="color: #8B4513;">$<?php echo number_format($item['price'], 2); ?></span>
-                                <a href="order.php?item_id=<?php echo $item['id']; ?>" class="btn btn-warning" style="border-radius: 20px;">
-                                    <i class="bi bi-cart-plus me-1"></i> Order
-                                </a>
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fs-4 fw-bold" style="color: #8B4513;">$<?php echo number_format($item['price'], 2); ?></span>
+                                    <a href="order.php?item_id=<?php echo $item['id']; ?>" class="btn btn-warning" style="border-radius: 20px;">
+                                        <i class="bi bi-cart-plus me-1"></i> Order
+                                    </a>
+                                </div>
+                                
+                                <!-- Admin Controls -->
+                                <?php if ($is_admin): ?>
+                                <div class="d-grid gap-2 mt-3 pt-3 border-top">
+                                    <a href="../admin/update_item.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil-square me-1"></i> Edit
+                                    </a>
+                                    <form method="POST" action="../admin/delete_item.php" style="display: inline;">
+                                        <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                        <input type="hidden" name="item_name" value="<?php echo sanitize($item['name']); ?>">
+                                        <button type="button" class="btn btn-sm btn-outline-danger w-100 delete-btn" data-item-id="<?php echo $item['id']; ?>" data-item-name="<?php echo sanitize($item['name']); ?>">
+                                            <i class="bi bi-trash me-1"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -112,5 +169,58 @@ try {
         <?php endif; ?>
     </div>
 </section>
+
+<!-- Global Delete Confirmation Modal -->
+<div class="modal fade" id="globalDeleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Delete
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete <strong id="itemNameDisplay"></strong>?</p>
+                <p class="text-muted small mb-0 mt-2">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-1"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    const globalDeleteModal = new bootstrap.Modal(document.getElementById('globalDeleteModal'));
+    let currentItemId = null;
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentItemId = this.getAttribute('data-item-id');
+            const itemName = this.getAttribute('data-item-name');
+            
+            // Update the modal content
+            document.getElementById('itemNameDisplay').textContent = itemName;
+            
+            // Show the modal
+            globalDeleteModal.show();
+        });
+    });
+
+    // Handle confirm delete button
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (currentItemId) {
+            window.location.href = '/eclipse_cafe/admin/delete_item.php?id=' + currentItemId + '&confirm=yes';
+        }
+    });
+});
+</script>
 
 <?php require_once '../includes/footer.php'; ?>
