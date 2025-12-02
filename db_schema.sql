@@ -66,21 +66,21 @@ INSERT INTO admins (username, password, email) VALUES
 
 -- Insert sample menu items
 INSERT INTO menu_items (name, description, price, category, image) VALUES 
-('Espresso', 'Rich and bold Italian espresso shot', 3.50, 'Coffee', 'espresso.jpg'),
-('Cappuccino', 'Espresso with steamed milk and foam', 4.50, 'Coffee', 'cappuccino.jpg'),
-('Caffe Latte', 'Smooth espresso with steamed milk', 4.75, 'Coffee', 'latte.jpg'),
-('Americano', 'Espresso with hot water', 3.75, 'Coffee', 'americano.jpg'),
-('Mocha', 'Espresso with chocolate and steamed milk', 5.25, 'Coffee', 'mocha.jpg'),
-('Iced Coffee', 'Cold brew coffee served over ice', 4.00, 'Cold Drinks', 'iced-coffee.jpg'),
-('Frappe', 'Blended iced coffee with whipped cream', 5.50, 'Cold Drinks', 'frappe.jpg'),
-('Green Tea Latte', 'Matcha green tea with steamed milk', 4.75, 'Tea', 'matcha.jpg'),
-('Chai Latte', 'Spiced tea with steamed milk', 4.50, 'Tea', 'chai.jpg'),
-('Croissant', 'Buttery French pastry', 3.25, 'Pastries', 'croissant.jpg'),
-('Chocolate Muffin', 'Rich chocolate chip muffin', 3.50, 'Pastries', 'muffin.jpg'),
-('Blueberry Cheesecake', 'Creamy cheesecake with blueberry topping', 6.50, 'Desserts', 'cheesecake.jpg'),
-('Tiramisu', 'Classic Italian coffee-flavored dessert', 6.75, 'Desserts', 'tiramisu.jpg'),
-('Club Sandwich', 'Triple-decker with turkey, bacon, and veggies', 8.50, 'Food', 'sandwich.jpg'),
-('Caesar Salad', 'Fresh romaine with Caesar dressing and croutons', 7.50, 'Food', 'salad.jpg');
+('Espresso', 'Rich and bold Italian espresso shot', 3.50, 'Coffee', 'item_692ea3ec4c74c.jpg'),
+('Cappuccino', 'Espresso with steamed milk and foam', 4.50, 'Coffee', 'item_692ea46f77024.jpg'),
+('Caffe Latte', 'Smooth espresso with steamed milk', 4.75, 'Coffee', 'item_692ea921f28ee.jpg'),
+('Americano', 'Espresso with hot water', 3.75, 'Coffee', 'item_692ea9767dd95.jpg'),
+('Mocha', 'Espresso with chocolate and steamed milk', 5.25, 'Coffee', 'item_692eaaa518baa.jpg'),
+('Iced Coffee', 'Cold brew coffee served over ice', 4.00, 'Cold Drinks', 'item_692eabc3bf18d.jpg'),
+('Frappe', 'Blended iced coffee with whipped cream', 5.50, 'Cold Drinks', 'item_692eabf5047d8.jpg'),
+('Green Tea Latte', 'Matcha green tea with steamed milk', 4.75, 'Tea', 'item_692eac70e4be3.jpg'),
+('Chai Latte', 'Spiced tea with steamed milk', 4.50, 'Tea', 'item_692eacc27f01d.jpg'),
+('Croissant', 'Buttery French pastry', 3.25, 'Pastries', 'item_692eacfe281f7.jpg'),
+('Chocolate Muffin', 'Rich chocolate chip muffin', 3.50, 'Pastries', 'item_692ead2c9d37b.jpg'),
+('Blueberry Cheesecake', 'Creamy cheesecake with blueberry topping', 6.50, 'Desserts', 'item_692ead7e904a4.jpg'),
+('Tiramisu', 'Classic Italian coffee-flavored dessert', 6.75, 'Desserts', 'item_692eadb1bade2.jpg'),
+('Club Sandwich', 'Triple-decker with turkey, bacon, and veggies', 8.50, 'Food', 'item_692eaea5640a0.jpg'),
+('Caesar Salad', 'Fresh romaine with Caesar dressing and croutons', 7.50, 'Food', 'item_692eaedd3f927.jpg');
 
 -- Insert sample orders for testing
 INSERT INTO orders (customer_name, phone, email, items, total, status) VALUES 

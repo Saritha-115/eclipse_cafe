@@ -3,16 +3,62 @@ $page_title = "Menu";
 require_once '../includes/db.php';
 require_once '../includes/header.php';
 
-// Check if admin is logged in
+// Initialize cart if not exists
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
+// Quick add to cart from menu
+if (isset($_POST['quick_add'])) {
+    $item_id = intval($_POST['item_id']);
+    $quantity = 1;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM menu_items WHERE id = ? AND is_available = 1");
+        $stmt->execute([$item_id]);
+        $item = $stmt->fetch();
+        
+        if ($item) {
+            $found = false;
+            foreach ($_SESSION['cart'] as &$cart_item) {
+                if ($cart_item['id'] == $item_id) {
+                    $cart_item['quantity'] += $quantity;
+                    $found = true;
+                    break;
+                }
+            }
+            
+            if (!$found) {
+                $_SESSION['cart'][] = [
+                    'id' => $item['id'],
+                    'name' => $item['name'],
+                    'price' => $item['price'],
+                    'quantity' => $quantity
+                ];
+            }
+            
+            $_SESSION['cart_message'] = "Added to cart!";
+        }
+    } catch (PDOException $e) {
+        $_SESSION['cart_error'] = "Error adding to cart.";
+    }
+    
+    header('Location: menu.php');
+    exit;
+}
+
+$cart_message = isset($_SESSION['cart_message']) ? $_SESSION['cart_message'] : '';
+$cart_error = isset($_SESSION['cart_error']) ? $_SESSION['cart_error'] : '';
+unset($_SESSION['cart_message']);
+unset($_SESSION['cart_error']);
+
 $is_admin = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
-// Get success/error messages from session (for delete operations)
 $success_message = isset($_SESSION['success_message']) ? $_SESSION['success_message'] : '';
 $error_message = isset($_SESSION['error_message']) ? $_SESSION['error_message'] : '';
 unset($_SESSION['success_message']);
 unset($_SESSION['error_message']);
 
-// Get all categories
 try {
     $cat_stmt = $pdo->query("SELECT DISTINCT category FROM menu_items WHERE is_available = 1 ORDER BY category");
     $categories = $cat_stmt->fetchAll();
@@ -20,11 +66,9 @@ try {
     $categories = [];
 }
 
-// Get selected category from URL
 $selected_category = isset($_GET['category']) ? cleanInput($_GET['category']) : 'all';
 $search_term = isset($_GET['search']) ? cleanInput($_GET['search']) : '';
 
-// Build query based on filters
 try {
     if ($selected_category === 'all' && empty($search_term)) {
         $stmt = $pdo->query("SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name");
@@ -44,6 +88,11 @@ try {
 } catch (PDOException $e) {
     $menu_items = [];
 }
+
+$cart_count = 0;
+foreach ($_SESSION['cart'] as $cart_item) {
+    $cart_count += $cart_item['quantity'];
+}
 ?>
 
 <!-- Page Header -->
@@ -54,12 +103,21 @@ try {
         </h1>
         <p class="lead">Discover our handcrafted selections</p>
         
+        <?php if ($cart_count > 0): ?>
+        <div class="mt-3">
+            <a href="order.php" class="btn btn-warning btn-lg">
+                <i class="bi bi-cart-fill me-2"></i>View Cart 
+                <span class="badge bg-danger"><?php echo $cart_count; ?></span>
+            </a>
+        </div>
+        <?php endif; ?>
+        
         <?php if ($is_admin): ?>
         <div class="mt-3">
             <a href="../admin/dashboard.php" class="btn btn-light me-2">
                 <i class="bi bi-speedometer2 me-1"></i> Dashboard
             </a>
-            <a href="../admin/add_item.php" class="btn btn-warning">
+            <a href="../admin/add_item.php" class="btn btn-outline-light">
                 <i class="bi bi-plus-circle me-1"></i> Add New Item
             </a>
         </div>
@@ -68,7 +126,7 @@ try {
 </div>
 
 <!-- Filter & Search Section -->
-<section class="py-4 bg-light sticky-top" style="top: 56px; z-index: 10;">
+<section class="py-4 bg-light sticky-top" style="top: 56px; z-index: 999;">
     <div class="container">
         <form method="GET" class="row g-3 align-items-center">
             <div class="col-md-4">
@@ -94,7 +152,17 @@ try {
     </div>
 </section>
 
-<!-- Success/Error Messages -->
+<!-- Messages -->
+<?php if ($cart_message): ?>
+<div class="container mt-3">
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle-fill me-2"></i><?php echo $cart_message; ?>
+        <a href="order.php" class="alert-link ms-2">View Cart</a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if ($success_message): ?>
 <div class="container mt-3">
     <div class="alert alert-success alert-dismissible fade show">
@@ -133,24 +201,30 @@ try {
                             <div class="mt-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="fs-4 fw-bold" style="color: #8B4513;">$<?php echo number_format($item['price'], 2); ?></span>
-                                    <a href="order.php?item_id=<?php echo $item['id']; ?>" class="btn btn-warning" style="border-radius: 20px;">
-                                        <i class="bi bi-cart-plus me-1"></i> Order
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
+                                        <button type="submit" name="quick_add" class="btn btn-warning w-100">
+                                            <i class="bi bi-cart-plus me-1"></i> Add to Cart
+                                        </button>
+                                    </form>
+                                    <a href="order.php?item_id=<?php echo $item['id']; ?>" class="btn btn-outline-warning">
+                                        <i class="bi bi-bag me-1"></i> Order Now
                                     </a>
                                 </div>
                                 
-                                <!-- Admin Controls -->
                                 <?php if ($is_admin): ?>
                                 <div class="d-grid gap-2 mt-3 pt-3 border-top">
                                     <a href="../admin/update_item.php?id=<?php echo $item['id']; ?>" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil-square me-1"></i> Edit
                                     </a>
-                                    <form method="POST" action="../admin/delete_item.php" style="display: inline;">
-                                        <input type="hidden" name="item_id" value="<?php echo $item['id']; ?>">
-                                        <input type="hidden" name="item_name" value="<?php echo sanitize($item['name']); ?>">
-                                        <button type="button" class="btn btn-sm btn-outline-danger w-100 delete-btn" data-item-id="<?php echo $item['id']; ?>" data-item-name="<?php echo sanitize($item['name']); ?>">
-                                            <i class="bi bi-trash me-1"></i> Delete
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-btn" 
+                                            data-id="<?php echo $item['id']; ?>" 
+                                            data-name="<?php echo sanitize($item['name']); ?>">
+                                        <i class="bi bi-trash me-1"></i> Delete
+                                    </button>
                                 </div>
                                 <?php endif; ?>
                             </div>
@@ -170,9 +244,20 @@ try {
     </div>
 </section>
 
-<!-- Global Delete Confirmation Modal -->
-<div class="modal fade" id="globalDeleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Floating Cart Button (Mobile) -->
+<?php if ($cart_count > 0): ?>
+<a href="order.php" class="btn btn-warning btn-lg rounded-circle d-lg-none" 
+   style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000;">
+    <i class="bi bi-cart-fill"></i>
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+        <?php echo $cart_count; ?>
+    </span>
+</a>
+<?php endif; ?>
+
+<!-- Single Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="deleteModalLabel">
@@ -181,44 +266,43 @@ try {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">Are you sure you want to delete <strong id="itemNameDisplay"></strong>?</p>
-                <p class="text-muted small mb-0 mt-2">This action cannot be undone.</p>
+                <p class="mb-2">Are you sure you want to delete <strong id="itemNameToDelete"></strong>?</p>
+                <p class="text-muted small mb-0">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-                    <i class="bi bi-trash me-1"></i> Delete
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Cancel
                 </button>
+                <a href="#" id="confirmDeleteBtn" class="btn btn-danger">
+                    <i class="bi bi-trash me-1"></i> Delete
+                </a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+// Handle delete button clicks
 document.addEventListener('DOMContentLoaded', function() {
     const deleteButtons = document.querySelectorAll('.delete-btn');
-    const globalDeleteModal = new bootstrap.Modal(document.getElementById('globalDeleteModal'));
-    let currentItemId = null;
-
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            currentItemId = this.getAttribute('data-item-id');
-            const itemName = this.getAttribute('data-item-name');
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const itemNameElement = document.getElementById('itemNameToDelete');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    deleteButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-id');
+            const itemName = this.getAttribute('data-name');
             
-            // Update the modal content
-            document.getElementById('itemNameDisplay').textContent = itemName;
+            // Update modal content
+            itemNameElement.textContent = itemName;
             
-            // Show the modal
-            globalDeleteModal.show();
+            // Set the delete URL
+            confirmDeleteBtn.href = '../admin/delete_item.php?id=' + itemId + '&confirm=yes';
+            
+            // Show modal
+            deleteModal.show();
         });
-    });
-
-    // Handle confirm delete button
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-        if (currentItemId) {
-            window.location.href = '/eclipse_cafe/admin/delete_item.php?id=' + currentItemId + '&confirm=yes';
-        }
     });
 });
 </script>
