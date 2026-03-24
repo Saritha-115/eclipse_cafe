@@ -193,12 +193,12 @@ try {
                                                 <?php foreach ($categories as $cat): ?>
                                                     <option value="<?php echo sanitize($cat['category']); ?>">
                                                 <?php endforeach; ?>
-                                                <option value="Coffee">
+                                                <!-- <option value="Coffee">
                                                 <option value="Tea">
                                                 <option value="Cold Drinks">
                                                 <option value="Pastries">
                                                 <option value="Desserts">
-                                                <option value="Food">
+                                                <option value="Food"> -->
                                             </datalist>
                                             <div class="invalid-feedback">Category is required.</div>
                                         </div>
