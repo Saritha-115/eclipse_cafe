@@ -90,12 +90,7 @@ The system uses a structured relational database with the following tables:
 ---
 
 ## 🎥 Demo
-👉 Add your demo video link here  
-
----
-
-## 📎 Repository
-👉 
+👉 [Demo video link](https://www.linkedin.com/posts/saritha-themiyadasa-115461249_webdevelopment-fullstackdevelopment-php-ugcPost-7443184802582769664-pDYL?utm_source=share&utm_medium=member_desktop&rcm=ACoAAD14LWEB0K36sCsdgFTDQO328LsuVzKT2YA) 
 
 ---
 
